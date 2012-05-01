@@ -1,3 +1,10 @@
+// Package tuntap provides a portable interface to create and use
+// TUN/TAP virtual network interfaces.
+//
+// Note that while this package lets you create the interface and pass
+// packets to/from it, it does not provide an API to configure the
+// interface. Interface configuration is a very large topic and should
+// be dealt with separately.
 package tuntap
 
 import (
@@ -10,9 +17,9 @@ import (
 type DevKind int
 
 const (
-	// Receive/send IP frames
+	// Receive/send IP frames.
 	DevTun DevKind = iota
-	// Receive/send Ethernet frames
+	// Receive/send Ethernet frames.
 	DevTap
 )
 
