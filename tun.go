@@ -17,9 +17,9 @@ import (
 type DevKind int
 
 const (
-	// Receive/send IP frames.
+	// Receive/send layer 3 packets (IP, IPv6, OSPF...)
 	DevTun DevKind = iota
-	// Receive/send Ethernet frames.
+	// Receive/send Ethernet II frames.
 	DevTap
 )
 
@@ -35,19 +35,40 @@ type Packet struct {
 }
 
 type TunTap struct {
+	// The name of the interface. May be different from the name given
+	// to Open(), if the latter was a pattern.
 	DevName string
+	// Channel of packets coming from the kernel.
 	In      <-chan *Packet
+	// Channel of packets going to the kernel.
 	Out     chan<- *Packet
 
 	file     *os.File
 	shutdown chan interface{}
 }
 
+// Disconnect from the tun/tap interface.
+//
+// If the interface isn't configured to be persistent, it is
+// immediately destroyed by the kernel.
 func (t *TunTap) Close() error {
 	close(t.shutdown)
 	return t.file.Close()
 }
 
+// Open connects to the specified tun/tap interface.
+//
+// If the specified device has been configured as persistent, this
+// simply looks like a "cable connected" event to observers of the
+// interface. Otherwise, the interface is created out of thin air.
+//
+// ifPattern can be an exact interface name, e.g. "tun42", or a
+// pattern containing one %d format specifier, e.g. "tun%d". In the
+// latter case, the kernel will select an available interface name and
+// create it.
+//
+// Returns a TunTap object with channels to send/receive packets, or
+// nil and an error if connecting to the interface failed.
 func Open(ifPattern string, kind DevKind) (*TunTap, error) {
 	file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
 	if err != nil {
