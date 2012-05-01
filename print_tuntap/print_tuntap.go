@@ -1,3 +1,4 @@
+// Simple use of the tuntap package that prints packets received by the interface.
 package main
 
 import (
