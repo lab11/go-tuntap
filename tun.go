@@ -24,9 +24,14 @@ const (
 )
 
 type Packet struct {
+	// The Ethernet type of the packet. Commonly seen values are
+	// 0x8000 for IPv4 and 0x86dd for IPv6.
 	Protocol int
-	Truncated    bool
-	Packet   []byte
+	// True if the packet was too large to be read completely.
+	Truncated bool
+	// The raw bytes of the Ethernet payload (for DevTun) or the full
+	// Ethernet frame (for DevTap).
+	Packet []byte
 }
 
 type TunTap struct {
@@ -82,7 +87,7 @@ func reader(file io.Reader, ch chan *Packet, shutdown chan interface{}) {
 		pkt := &Packet{Packet: buf[4:n]}
 		pkt.Protocol = int(binary.BigEndian.Uint16(buf[2:4]))
 		flags := *(*uint16)(unsafe.Pointer(&buf[0]))
-		if flags & flagTruncated != 0 {
+		if flags&flagTruncated != 0 {
 			pkt.Truncated = true
 		}
 		select {
