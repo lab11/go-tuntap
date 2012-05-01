@@ -17,9 +17,13 @@ import (
 type DevKind int
 
 const (
-	// Receive/send layer 3 packets (IP, IPv6, OSPF...)
+	// Receive/send layer routable 3 packets (IP, IPv6,
+	// OSPF...). Notably, you don't receive link-local multicast with
+	// this interface type.
 	DevTun DevKind = iota
-	// Receive/send Ethernet II frames.
+	// Receive/send Ethernet II frames. You receive all packets that
+	// would be visible on an Ethernet link, including broadcast and
+	// multicast traffic.
 	DevTap
 )
 
