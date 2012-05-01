@@ -24,8 +24,8 @@ const (
 )
 
 type Packet struct {
-	Flags    int
 	Protocol int
+	Truncated    bool
 	Packet   []byte
 }
 
@@ -80,8 +80,11 @@ func reader(file io.Reader, ch chan *Packet, shutdown chan interface{}) {
 			return
 		}
 		pkt := &Packet{Packet: buf[4:n]}
-		pkt.Flags = int(*(*uint16)(unsafe.Pointer(&buf[0])))
 		pkt.Protocol = int(binary.BigEndian.Uint16(buf[2:4]))
+		flags := *(*uint16)(unsafe.Pointer(&buf[0]))
+		if flags & flagTruncated != 0 {
+			pkt.Truncated = true
+		}
 		select {
 		case ch <- pkt:
 		case <-shutdown:
