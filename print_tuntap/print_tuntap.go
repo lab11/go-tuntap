@@ -31,8 +31,18 @@ func main() {
 		return
 	}
 
-	fmt.Println("Listening on ", tun.DevName)
-	for pkt := range tun.In {
-		fmt.Printf("%v %x %x\n", pkt.Truncated, pkt.Protocol, pkt.Packet)
+	fmt.Println("Listening on ", tun.Name())
+	for {
+		pkt, err := tun.ReadPacket()
+		if err != nil {
+			fmt.Println("Read error:", err)
+		} else {
+			if pkt.Truncated {
+				fmt.Printf("!")
+			} else {
+				fmt.Printf(" ")
+			}
+			fmt.Printf("%x %x\n", pkt.Protocol, pkt.Packet)
+		}
 	}
 }
