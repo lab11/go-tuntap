@@ -31,7 +31,7 @@ func main() {
 		return
 	}
 
-	fmt.Println("Listening on ", tun.Name())
+	fmt.Println("Listening on", tun.Name())
 	for {
 		pkt, err := tun.ReadPacket()
 		if err != nil {
