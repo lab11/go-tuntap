@@ -17,9 +17,9 @@ import (
 type DevKind int
 
 const (
-	// Receive/send layer routable 3 packets (IP, IPv6,
-	// OSPF...). Notably, you don't receive link-local multicast with
-	// this interface type.
+	// Receive/send layer routable 3 packets (IP, IPv6...). Notably,
+	// you don't receive link-local multicast with this interface
+	// type.
 	DevTun DevKind = iota
 	// Receive/send Ethernet II frames. You receive all packets that
 	// would be visible on an Ethernet link, including broadcast and
@@ -38,26 +38,57 @@ type Packet struct {
 	Packet []byte
 }
 
-type TunTap struct {
-	// The name of the interface. May be different from the name given
-	// to Open(), if the latter was a pattern.
-	DevName string
-	// Channel of packets coming from the kernel.
-	In      <-chan *Packet
-	// Channel of packets going to the kernel.
-	Out     chan<- *Packet
-
+type Interface struct {
+	name string
 	file     *os.File
-	shutdown chan interface{}
 }
 
 // Disconnect from the tun/tap interface.
 //
 // If the interface isn't configured to be persistent, it is
 // immediately destroyed by the kernel.
-func (t *TunTap) Close() error {
-	close(t.shutdown)
+func (t *Interface) Close() error {
 	return t.file.Close()
+}
+
+// The name of the interface. May be different from the name given to
+// Open(), if the latter was a pattern.
+func (t *Interface) Name() string {
+	return t.name
+}
+
+// Read a single packet from the kernel.
+func (t *Interface) ReadPacket() (*Packet, error) {
+	buf := make([]byte, 10000)
+
+	n, err := t.file.Read(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	pkt := &Packet{Packet: buf[4:n]}
+	pkt.Protocol = int(binary.BigEndian.Uint16(buf[2:4]))
+	flags := *(*uint16)(unsafe.Pointer(&buf[0]))
+	if flags&flagTruncated != 0 {
+		pkt.Truncated = true
+	}
+	return pkt, nil
+}
+
+// Send a single packet to the kernel.
+func (t *Interface) WritePacket(pkt *Packet) error {
+	// If only we had writev(), I could do zero-copy here...
+	buf := make([]byte, len(pkt.Packet)+4)
+	binary.BigEndian.PutUint16(buf[2:4], uint16(pkt.Protocol))
+	copy(buf[4:], pkt.Packet)
+	n, err := t.file.Write(buf)
+	if err != nil {
+		return err
+	}
+	if n != len(buf) {
+		return io.ErrShortWrite
+	}
+	return nil
 }
 
 // Open connects to the specified tun/tap interface.
@@ -73,7 +104,7 @@ func (t *TunTap) Close() error {
 //
 // Returns a TunTap object with channels to send/receive packets, or
 // nil and an error if connecting to the interface failed.
-func Open(ifPattern string, kind DevKind) (*TunTap, error) {
+func Open(ifPattern string, kind DevKind) (*Interface, error) {
 	file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
 	if err != nil {
 		return nil, err
@@ -85,58 +116,5 @@ func Open(ifPattern string, kind DevKind) (*TunTap, error) {
 		return nil, err
 	}
 
-	in := make(chan *Packet)
-	out := make(chan *Packet)
-	shutdown := make(chan interface{})
-	go reader(file, in, shutdown)
-	go writer(file, out, shutdown)
-	ret := &TunTap{
-		DevName:  ifName,
-		In:       in,
-		Out:      out,
-		file:     file,
-		shutdown: shutdown,
-	}
-	return ret, nil
-}
-
-func reader(file io.Reader, ch chan *Packet, shutdown chan interface{}) {
-	// Enough to read a jumbo ethernet frame. If that's not enough,
-	// truncated packets will show up.
-	buf := make([]byte, 10000)
-	for {
-		n, err := file.Read(buf)
-		if err != nil {
-			return
-		}
-		pkt := &Packet{Packet: buf[4:n]}
-		pkt.Protocol = int(binary.BigEndian.Uint16(buf[2:4]))
-		flags := *(*uint16)(unsafe.Pointer(&buf[0]))
-		if flags&flagTruncated != 0 {
-			pkt.Truncated = true
-		}
-		select {
-		case ch <- pkt:
-		case <-shutdown:
-			return
-		}
-	}
-}
-
-func writer(file io.Writer, ch chan *Packet, shutdown chan interface{}) {
-	for {
-		select {
-		case <-shutdown:
-			return
-		case pkt := <-ch:
-			buf := make([]byte, len(pkt.Packet)+4)
-			binary.BigEndian.PutUint16(buf[2:4], uint16(pkt.Protocol))
-			copy(buf[4:], pkt.Packet)
-			if n, err := file.Write(buf); err != nil || n != len(buf) {
-				// tuntap should not be giving us short writes, since
-				// we need to atomically pass one packet at a time.
-				return
-			}
-		}
-	}
+	return &Interface{ifName, file}, nil
 }
