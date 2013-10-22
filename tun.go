@@ -68,7 +68,7 @@ func (t *Interface) ReadPacket() (*Packet, error) {
 
 	pkt := &Packet{Packet: buf[4:n]}
 	pkt.Protocol = int(binary.BigEndian.Uint16(buf[2:4]))
-	flags := *(*uint16)(unsafe.Pointer(&buf[0]))
+	flags := int(*(*uint16)(unsafe.Pointer(&buf[0])))
 	if flags&flagTruncated != 0 {
 		pkt.Truncated = true
 	}
