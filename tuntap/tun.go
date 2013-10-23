@@ -105,7 +105,7 @@ func (t *Interface) WritePacket(pkt *Packet) error {
 // Returns a TunTap object with channels to send/receive packets, or
 // nil and an error if connecting to the interface failed.
 func Open(ifPattern string, kind DevKind) (*Interface, error) {
-	file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
+	file, err := openDevice(ifPattern)
 	if err != nil {
 		return nil, err
 	}

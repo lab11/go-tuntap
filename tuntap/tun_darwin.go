@@ -2,17 +2,17 @@ package tuntap
 
 import (
 	"os"
-	"unsafe"
-	"syscall"
+//	"unsafe"
+//	"syscall"
 )
 
-func openDevice(ifPattern string) (file, error) {
-	file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
+func openDevice(ifPattern string) (*os.File, error) {
+	file, err := os.OpenFile("/dev/" + ifPattern, os.O_RDWR, 0)
 	return file, err
 }
 
 func createInterface(file *os.File, ifPattern string, kind DevKind) (string, error) {
-	var req ifReq
+	/*var req ifReq
 	req.Flags = iffOneQueue
 	copy(req.Name[:15], ifPattern)
 	switch kind {
@@ -27,5 +27,7 @@ func createInterface(file *os.File, ifPattern string, kind DevKind) (string, err
 	if err != 0 {
 		return "", err
 	}
-	return string(req.Name[:]), nil
+	return string(req.Name[:]), nil*/
+
+	return "ok", nil
 }
