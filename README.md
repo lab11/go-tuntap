@@ -19,7 +19,7 @@ Usage
         var inpkt *tuntap.Packet
 
         tund, err = tuntap.Open("tun0", tuntap.DevTun)
-        inpkt = tuntap.ReadPacket(tund)
+        inpkt = tund.ReadPacket()
     }
 
 
