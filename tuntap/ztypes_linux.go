@@ -9,6 +9,7 @@ const (
 	iffTun		= 0x1
 	iffTap		= 0x2
 	iffOneQueue	= 0x2000
+	iffnopi =  0x1000
 )
 
 type ifReq struct {

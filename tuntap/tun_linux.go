@@ -6,14 +6,15 @@ import (
 	"syscall"
 )
 
-func openDevice(ifPattern string) (file, error) {
+func openDevice(ifPattern string) (*os.File, error) {
 	file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
 	return file, err
 }
 
-func createInterface(file *os.File, ifPattern string, kind DevKind) (string, error) {
+func createInterface(file *os.File, ifPattern string, kind DevKind, meta bool) (string, error) {
 	var req ifReq
-	req.Flags = iffOneQueue
+	//req.Flags = iffOneQueue
+	req.Flags = 0
 	copy(req.Name[:15], ifPattern)
 	switch kind {
 	case DevTun:
@@ -22,6 +23,9 @@ func createInterface(file *os.File, ifPattern string, kind DevKind) (string, err
 		req.Flags |= iffTap
 	default:
 		panic("Unknown interface type")
+	}
+	if !meta {
+		req.Flags |= iffnopi
 	}
 	_, _, err := syscall.Syscall(syscall.SYS_IOCTL, file.Fd(), uintptr(syscall.TUNSETIFF), uintptr(unsafe.Pointer(&req)))
 	if err != 0 {

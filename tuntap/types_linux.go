@@ -17,6 +17,7 @@ const (
 
 	iffTun = C.IFF_TUN
 	iffTap = C.IFF_TAP
+	iffnopi = C.IFF_NO_PI
 	iffOneQueue = C.IFF_ONE_QUEUE
 )
 

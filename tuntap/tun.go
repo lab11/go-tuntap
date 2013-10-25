@@ -40,7 +40,9 @@ type Packet struct {
 
 type Interface struct {
 	name string
-	file     *os.File
+	//file net.Conn
+	file *os.File
+	meta bool
 }
 
 // Disconnect from the tun/tap interface.
@@ -66,7 +68,12 @@ func (t *Interface) ReadPacket() (*Packet, error) {
 		return nil, err
 	}
 
-	pkt := &Packet{Packet: buf[4:n]}
+	var pkt *Packet
+	if t.meta {
+		pkt = &Packet{Packet: buf[4:n]}
+	} else {
+		pkt = &Packet{Packet: buf[0:n]}
+	}
 	pkt.Protocol = int(binary.BigEndian.Uint16(buf[2:4]))
 	flags := int(*(*uint16)(unsafe.Pointer(&buf[0])))
 	if flags&flagTruncated != 0 {
@@ -81,7 +88,14 @@ func (t *Interface) WritePacket(pkt *Packet) error {
 	buf := make([]byte, len(pkt.Packet)+4)
 	binary.BigEndian.PutUint16(buf[2:4], uint16(pkt.Protocol))
 	copy(buf[4:], pkt.Packet)
-	n, err := t.file.Write(buf)
+
+	var n int
+	var err error
+	if t.meta {
+		n, err = t.file.Write(buf)
+	} else {
+		n, err = t.file.Write(pkt.Packet)
+	}
 	if err != nil {
 		return err
 	}
@@ -102,19 +116,22 @@ func (t *Interface) WritePacket(pkt *Packet) error {
 // latter case, the kernel will select an available interface name and
 // create it.
 //
+// meta determines whether the tun/tap header fields in Packet will be
+// used.
+//
 // Returns a TunTap object with channels to send/receive packets, or
 // nil and an error if connecting to the interface failed.
-func Open(ifPattern string, kind DevKind) (*Interface, error) {
+func Open(ifPattern string, kind DevKind, meta bool) (*Interface, error) {
 	file, err := openDevice(ifPattern)
 	if err != nil {
 		return nil, err
 	}
 
-	ifName, err := createInterface(file, ifPattern, kind)
+	ifName, err := createInterface(file, ifPattern, kind, meta)
 	if err != nil {
 		file.Close()
 		return nil, err
 	}
 
-	return &Interface{ifName, file}, nil
+	return &Interface{ifName, file, meta}, nil
 }
