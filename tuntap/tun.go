@@ -29,7 +29,7 @@ const (
 
 type Packet struct {
 	// The Ethernet type of the packet. Commonly seen values are
-	// 0x8000 for IPv4 and 0x86dd for IPv6.
+	// 0x0800 for IPv4 and 0x86dd for IPv6.
 	Protocol int
 	// True if the packet was too large to be read completely.
 	Truncated bool
