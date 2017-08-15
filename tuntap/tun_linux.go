@@ -1,9 +1,10 @@
 package tuntap
 
 import (
+	"bytes"
 	"os"
-	"unsafe"
 	"syscall"
+	"unsafe"
 )
 
 func openDevice(ifPattern string) (*os.File, error) {
@@ -31,5 +32,9 @@ func createInterface(file *os.File, ifPattern string, kind DevKind, meta bool) (
 	if err != 0 {
 		return "", err
 	}
-	return string(req.Name[:]), nil
+	idxNull := bytes.IndexByte(req.Name[:], 0)
+	if idxNull < 0 {
+		idxNull = len(req.Name)
+	}
+	return string(req.Name[:idxNull]), nil
 }
