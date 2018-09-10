@@ -25,7 +25,7 @@ func main() {
 		return
 	}
 
-	tun, err := tuntap.Open(os.Args[2], typ, false)
+	tun, err := tuntap.Open(os.Args[2], typ, true)
 	if err != nil {
 		fmt.Println("Error opening tun/tap device:", err)
 		return
