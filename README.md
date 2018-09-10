@@ -15,11 +15,12 @@ Usage
 
     func main () {
         var tund *tuntap.Interface
-        var erro error
+        var err error
         var inpkt *tuntap.Packet
 
-        tund, err = tuntap.Open("tun0", tuntap.DevTun)
-        inpkt = tund.ReadPacket()
+        tun_metahdr := false
+        tund, err  = tuntap.Open("tun0", tuntap.DevTun, tun_metahdr)
+        inpkt, err = tund.ReadPacket()
     }
 
 
