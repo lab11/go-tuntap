@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"code.google.com/p/tuntap"
+	"github.com/lab11/go-tuntap/tuntap"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 		return
 	}
 
-	tun, err := tuntap.Open(os.Args[2], typ)
+	tun, err := tuntap.Open(os.Args[2], typ, false)
 	if err != nil {
 		fmt.Println("Error opening tun/tap device:", err)
 		return
